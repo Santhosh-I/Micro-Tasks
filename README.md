@@ -219,21 +219,6 @@ text
 
 ---
 
-## 📸 Screenshots
-
-### 🏠 Home Page
-Clean, modern interface showing available tasks with completion statistics.
-
-### 📝 Task Submission
-Intuitive form with drag-and-drop file upload and real-time validation.
-
-### 👨‍💼 Admin Dashboard
-Comprehensive analytics and management tools for task oversight.
-
-### 🖼️ Image Review System
-Professional full-screen image viewer with download capabilities.
-
----
 
 ## 🚀 Deployment
 
@@ -267,10 +252,6 @@ text
 
 ---
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
 ---
 
 ## 🙏 Acknowledgments
@@ -294,6 +275,10 @@ If you encounter any issues or have questions:
 <div align="center">
   <h3>⭐ Star this repository if you found it helpful!</h3>
   <p><em>Made with ❤️ for the developer community</em></p>
+</div>
+
+<div align="center">
+  <h3>Made by *TECH KNOX* 🦇 </h3>
 </div>
 
 ---
