@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}View Submissions - Admin Panel{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <h1>User Submissions</h1>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+
+        <div class="admin-table-card">
+            <h3>All Submissions ({{ submissions|length }})</h3>
+            {% if submissions %}
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Task</th>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Proof Image</th>
+                                <th>Submitted</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for submission in submissions %}
+                                <tr>
+                                    <td><code>{{ submission.id }}</code></td>
+                                    <td><strong>{{ submission.task_title }}</strong></td>
+                                    <td>{{ submission.user_name }}</td>
+                                    <td>{{ submission.user_email }}</td>
+                                    <td>
+                                        {% if submission.proof_image %}
+                                            <img src="{{ url_for('static', filename='uploads/submissions/' + submission.proof_image) }}" alt="Proof" class="table-image" onclick="openImageModal(this.src)">
+                                        {% else %}
+                                            No image
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ submission.submitted_at[:10] if submission.submitted_at else 'N/A' }}</td>
+                                    <td><span class="status-badge status-{{ submission.status }}">{{ submission.status.title() }}</span></td>
+                                    <td>
+                                        {% if submission.status == 'pending' %}
+                                            <div class="action-buttons">
+                                                <form method="POST" action="{{ url_for('admin_update_submission') }}" style="display:inline;">
+                                                    <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                                                    <input type="hidden" name="status" value="approved">
+                                                    <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                                </form>
+                                                <form method="POST" action="{{ url_for('admin_update_submission') }}" style="display:inline;">
+                                                    <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                                                    <input type="hidden" name="status" value="rejected">
+                                                    <input type="hidden" name="notes" value="Does not meet requirements">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                                </form>
+                                            </div>
+                                        {% else %}
+                                            <span class="text-muted">Reviewed</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>No submissions yet. Users will see their submissions here once they start completing tasks.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Image Modal -->
+<div id="imageModal" class="modal" onclick="closeImageModal()">
+    <div class="modal-content">
+        <img id="modalImage" src="" alt="Proof Image">
+        <span class="modal-close" onclick="closeImageModal()">&times;</span>
+    </div>
+</div>
+{% endblock %}

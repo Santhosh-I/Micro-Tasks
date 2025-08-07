@@ -1,0 +1,8 @@
+# For static/uploads/tasks/.gitkeep
+echo "# Keep this directory for task reference images" > static/uploads/tasks/.gitkeep
+
+# For static/uploads/submissions/.gitkeep  
+echo "# Keep this directory for user proof submissions" > static/uploads/submissions/.gitkeep
+
+# For data/.gitkeep
+echo "# Keep this directory for Excel database files" > data/.gitkeep

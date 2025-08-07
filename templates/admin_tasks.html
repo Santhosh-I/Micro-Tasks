@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Tasks - Admin Panel{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <!-- ─── Header ─────────────────────────────────────────────── -->
+        <div class="admin-header">
+            <h1>Manage Tasks</h1>
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        </div>
+
+        <!-- ─── Add-Task Form ───────────────────────────────────────── -->
+        <div class="admin-form-card">
+            <h3>Add New Task</h3>
+            <form method="POST" action="{{ url_for('admin_add_task') }}" enctype="multipart/form-data">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="title">Task Title</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="reference_image">Reference Image</label>
+                        <input type="file" id="reference_image" name="reference_image" accept="image/*" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Task Description</label>
+                    <textarea id="description" name="description" rows="4" required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Add Task</button>
+            </form>
+        </div>
+
+        <!-- ─── Task Table ──────────────────────────────────────────── -->
+        <div class="admin-table-card">
+            <h3>All Tasks ({{ tasks|length }})</h3>
+            {% if tasks %}
+                <div class="table-responsive">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Description</th>
+                                <th>Reference</th>
+                                <th>Created</th>
+                                <th>Status</th>
+                                <th>Actions</th>  <!-- NEW -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for task in tasks %}
+                                <tr>
+                                    <td><code>{{ task.id }}</code></td>
+                                    <td><strong>{{ task.title }}</strong></td>
+                                    <td>
+                                        {{ task.description[:50] }}
+                                        {% if task.description|length > 50 %}…{% endif %}
+                                    </td>
+                                    <td>
+                                        {% if task.reference_image %}
+                                            <img src="{{ url_for('static',
+                                                                 filename='uploads/tasks/' + task.reference_image) }}"
+                                                 alt="Reference" class="table-image">
+                                        {% else %}No image{% endif %}
+                                    </td>
+                                    <td>{{ task.created_at[:10] if task.created_at else 'N/A' }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ task.status }}">
+                                            {{ task.status.title() }}
+                                        </span>
+                                    </td>
+
+                                    <!-- ─── Actions ─── -->
+                                    <td>
+                                        {% if task.status != 'completed' %}
+                                            <!-- Completed button -->
+                                            <form method="POST"
+                                                  action="{{ url_for('admin_mark_completed', task_id=task.id) }}"
+                                                  style="display:inline;">
+                                                <button type="submit"
+                                                        class="btn btn-sm btn-success"
+                                                        title="Mark task as completed">
+                                                    Completed
+                                                </button>
+                                            </form>
+                                        {% endif %}
+
+                                        <!-- Delete button -->
+                                        <form method="POST"
+                                              action="{{ url_for('admin_delete_task', task_id=task.id) }}"
+                                              style="display:inline;"
+                                              onsubmit="return confirm('Delete this task and all its submissions?');">
+                                            <button type="submit"
+                                                    class="btn btn-sm btn-danger"
+                                                    title="Delete task permanently">
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>No tasks created yet. Add your first task above.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

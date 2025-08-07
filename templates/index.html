@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Available Tasks - Microtask Platform{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <h1>Streamline Your Tasks,<br><span class="highlight">Supercharge Your Results</span></h1>
+            <p>Complete simple online tasks and earn rewards. Submit proof of work and get manual verification from our team.</p>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <h3>{{ tasks|length }}</h3>
+                    <p>Available Tasks</p>
+                </div>
+                <div class="stat-card">
+                    <h3>{{ completed_tasks }}+</h3>
+                    <p>Tasks Completed</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Fast</h3>
+                    <p>Manual Review</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Secure</h3>
+                    <p>Proof System</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="tasks-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>Available Tasks</h2>
+            <p>Choose from our collection of simple online tasks</p>
+        </div>
+
+        {% if tasks %}
+            <div class="tasks-grid">
+                {% for task in tasks %}
+                    <div class="task-card">
+                        <div class="task-image">
+                            {% if task.reference_image %}
+                                <img src="{{ url_for('static', filename='uploads/tasks/' + task.reference_image) }}" alt="{{ task.title }}">
+                            {% else %}
+                                <div class="placeholder-image">
+                                    <span>📋</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="task-content">
+                            <h3>{{ task.title }}</h3>
+                            <p>{{ task.description[:100] }}{% if task.description|length > 100 %}...{% endif %}</p>
+                            <div class="task-meta">
+                                <span class="task-date">{{ task.created_at[:10] if task.created_at else 'Recently' }}</span>
+                                <span class="task-status status-{{ task.status }}">{{ task.status.title() }}</span>
+                            </div>
+                            <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-primary">View Details</a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <h3>No Tasks Available</h3>
+                <p>Check back later for new tasks to complete.</p>
+            </div>
+        {% endif %}
+    </div>
+</section>
+
+<section class="features-section">
+    <div class="container">
+        <div class="section-header">
+            <h2>How It Works</h2>
+            <p>Simple process to complete tasks and get verified</p>
+        </div>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">👀</div>
+                <h3>Browse Tasks</h3>
+                <p>View available tasks with detailed descriptions and reference images</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📸</div>
+                <h3>Submit Proof</h3>
+                <p>Complete the task and upload screenshot or photo as proof</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✅</div>
+                <h3>Get Verified</h3>
+                <p>Our admin team manually reviews and approves your submission</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

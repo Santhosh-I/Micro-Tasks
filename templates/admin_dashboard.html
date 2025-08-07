@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - Microtask Platform{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <div class="container">
+        <div class="admin-header">
+            <h1>Admin Dashboard</h1>
+            <div class="admin-nav">
+                <a href="{{ url_for('admin_tasks') }}" class="btn btn-outline">Manage Tasks</a>
+                <a href="{{ url_for('admin_submissions') }}" class="btn btn-outline">View Submissions</a>
+                <a href="{{ url_for('admin_logout') }}" class="btn btn-secondary">Logout</a>
+            </div>
+        </div>
+
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon">📋</div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_tasks }}</h3>
+                    <p>Total Tasks</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-content">
+                    <h3>{{ stats.active_tasks }}</h3>
+                    <p>Active Tasks</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📸</div>
+                <div class="stat-content">
+                    <h3>{{ stats.total_submissions }}</h3>
+                    <p>Total Submissions</p>
+                </div>
+            </div>
+            <div class="stat-card highlight">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-content">
+                    <h3>{{ stats.pending_submissions }}</h3>
+                    <p>Pending Review</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-actions">
+            <div class="action-card">
+                <h3>Quick Actions</h3>
+                <div class="action-buttons">
+                    <a href="{{ url_for('admin_tasks') }}" class="btn btn-primary">Add New Task</a>
+                    <a href="{{ url_for('admin_submissions') }}" class="btn btn-outline">Review Submissions</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
