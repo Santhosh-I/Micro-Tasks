@@ -71,6 +71,8 @@ body {
     color: var(--text-primary);
     font-weight: 500;
     transition: color 0.2s;
+    border-radius: 5px;
+    padding: 0.25rem 0.75rem;
 }
 
 .nav-links a:hover {
