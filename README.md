@@ -105,25 +105,52 @@ text
 
 ## 📁 Project Structure
 
-microtask-website/
-├── 📄 app.py # Main Flask application
-├── 📋 requirements.txt # Python dependencies
-├── 🔧 .env.example # Environment template
-├── 📝 README.md # Project documentation
-├── 🚫 .gitignore # Git exclusion rules
-├── 📂 templates/ # HTML templates
-│ ├── 🏠 index.html
-│ ├── 📝 task_detail.html
-│ ├── 👨💼 admin_dashboard.html
-│ ├── 📊 admin_tasks.html
-│ └── 📋 admin_submissions.html
-├── 📂 static/ # CSS, JS, and uploads
-│ ├── 🎨 css/
-│ ├── ⚡ js/
-│ └── 📁 uploads/ # Upload directories (excluded from Git)
-└── 📊 data/ # Excel database files (excluded from Git)
+📁 Project Structure
+<details> <summary><strong>📂 Core Application Files</strong></summary>
+📄 app.py - Main Flask application with all routes and database functions
 
-text
+📋 requirements.txt - Python dependencies
+
+🔧 .env.example - Environment variables template
+
+📝 README.md - Project documentation
+
+🚫 .gitignore - Git exclusion rules
+
+</details> <details> <summary><strong>📂 templates/ - HTML Templates</strong></summary>
+🏠 base.html - Base template with navigation
+
+🏠 index.html - Home page with task listings
+
+📝 task_detail.html - Task submission form (1-3 images)
+
+🔐 admin_login.html - Admin authentication
+
+👨💼 admin_dashboard.html - Admin statistics
+
+📊 admin_tasks.html - Task management
+
+📋 admin_submissions.html - Submission review with full-screen viewer
+
+</details> <details> <summary><strong>📂 static/ - Static Assets</strong></summary>
+🎨 css/ - Custom green theme stylesheets
+
+⚡ js/ - Interactive JavaScript functionality
+
+📁 uploads/ - User uploaded files (excluded from Git)
+
+📸 tasks/ - Admin reference images
+
+🖼️ submissions/ - User proof images
+
+</details> <details> <summary><strong>📊 data/ - Excel Database</strong></summary>
+📋 tasks.xlsx - Task storage with status tracking
+
+📊 submissions.xlsx - User submissions with mobile numbers
+
+Note: These files are excluded from Git for security
+
+</details> ```
 
 ---
 
