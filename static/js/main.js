@@ -201,3 +201,126 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('proof_image');
+    const fileUploadArea = document.getElementById('fileUploadArea');
+    const fileMessage = document.getElementById('fileMessage');
+    const filePreview = document.getElementById('filePreview');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    let selectedFiles = [];
+
+    // File input change handler
+    fileInput.addEventListener('change', function(e) {
+        handleFiles(e.target.files);
+    });
+
+    // Drag and drop handlers
+    fileUploadArea.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragover');
+    });
+
+    fileUploadArea.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+    });
+
+    fileUploadArea.addEventListener('drop', function(e) {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    function handleFiles(files) {
+        selectedFiles = Array.from(files);
+        updateFileMessage();
+        updatePreview();
+        updateSubmitButton();
+    }
+
+    function updateFileMessage() {
+        const count = selectedFiles.length;
+        
+        if (count === 0) {
+            fileMessage.innerHTML = '<small>Please select at least 1 image to proceed</small>';
+            fileMessage.className = 'file-message warning';
+        } else if (count > 3) {
+            fileMessage.innerHTML = '<small>❌ Too many images. Maximum 3 images allowed</small>';
+            fileMessage.className = 'file-message error';
+        } else {
+            const imageText = count === 1 ? 'image' : 'images';
+            fileMessage.innerHTML = '<small>✅ ' + count + ' ' + imageText + ' selected - Ready to submit!</small>';
+            fileMessage.className = 'file-message success';
+        }
+    }
+
+    function updatePreview() {
+        filePreview.innerHTML = '';
+        
+        selectedFiles.forEach(function(file, index) {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    previewItem.innerHTML = 
+                        '<img src="' + e.target.result + '" alt="Preview ' + (index + 1) + '" class="preview-img">' +
+                        '<button type="button" class="remove-image" onclick="removeImage(' + index + ')" title="Remove image">×</button>' +
+                        '<div class="preview-info">' +
+                            'Image ' + (index + 1) + '<br>' +
+                            '<small>' + (file.size / 1024).toFixed(1) + ' KB</small>' +
+                        '</div>';
+                    filePreview.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    function updateSubmitButton() {
+        const isValid = selectedFiles.length >= 1 && selectedFiles.length <= 3;
+        submitBtn.disabled = !isValid;
+        
+        if (isValid) {
+            const imageText = selectedFiles.length === 1 ? 'image' : 'images';
+            submitBtn.textContent = 'Submit Proof (' + selectedFiles.length + ' ' + imageText + ')';
+        } else {
+            submitBtn.textContent = 'Select 1-3 images to continue';
+        }
+    }
+
+    // Global function for removing images
+    window.removeImage = function(index) {
+        selectedFiles.splice(index, 1);
+        
+        // Update the file input
+        const dt = new DataTransfer();
+        selectedFiles.forEach(function(file) {
+            dt.items.add(file);
+        });
+        fileInput.files = dt.files;
+        
+        updateFileMessage();
+        updatePreview();
+        updateSubmitButton();
+    };
+
+    // Form submission validation
+    document.getElementById('submissionForm').addEventListener('submit', function(e) {
+        if (selectedFiles.length < 1 || selectedFiles.length > 3) {
+            e.preventDefault();
+            alert('Please select between 1 to 3 images before submitting.');
+            return false;
+        }
+        
+        // Show loading state
+        submitBtn.textContent = 'Uploading...';
+        submitBtn.disabled = true;
+    });
+
+    // Initialize
+    updateFileMessage();
+    updateSubmitButton();
+});

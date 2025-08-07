@@ -41,7 +41,7 @@
             <div class="submission-form">
                 <div class="form-card">
                     <h3>Submit Your Proof</h3>
-                    <p>Upload a screenshot or photo showing you've completed this task</p>
+                    <p>Upload 1-3 screenshots or photos showing you've completed this task</p>
 
                     <form method="POST" action="{{ url_for('submit_task', task_id=task.id) }}" enctype="multipart/form-data" id="submissionForm">
                         <div class="form-group">
@@ -55,33 +55,42 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="proof_image">Proof Image</label>
+                            <label for="proof_image">Proof Images (1-3 required)</label>
                             <div class="file-upload-area" id="fileUploadArea">
-                                <input type="file" id="proof_image" name="proof_image" accept="image/*" required>
+                                <input type="file" 
+                                       id="proof_image" 
+                                       name="proof_image" 
+                                       multiple 
+                                       accept="image/*" 
+                                       required>
                                 <div class="file-upload-text">
                                     <span class="upload-icon">📸</span>
                                     <span>Click to upload or drag and drop</span>
-                                    <small>PNG, JPG, GIF up to 5MB</small>
+                                    <small>Select 1-3 images • PNG, JPG, GIF up to 5MB each</small>
                                 </div>
                             </div>
+                            <div id="fileMessage" class="file-message"></div>
                             <div id="filePreview" class="file-preview"></div>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-full">Submit Proof</button>
+                        <button type="submit" class="btn btn-primary btn-full" id="submitBtn">Submit Proof</button>
                     </form>
                 </div>
 
                 <div class="submission-tips">
                     <h4>📝 Submission Tips</h4>
                     <ul>
-                        <li>Ensure your proof clearly shows task completion</li>
-                        <li>Use high-quality images for faster approval</li>
-                        <li>Include all required elements from the task description</li>
-                        <li>Submissions are reviewed within 24-48 hours</li>
+                        <li><strong>Upload 2-3 images:</strong> Multiple angles or steps of your completion</li>
+                        <li><strong>High quality:</strong> Clear, well-lit photos for faster approval</li>
+                        <li><strong>Show progress:</strong> Include before, during, and after shots if applicable</li>
+                        <li><strong>Complete evidence:</strong> All required elements from task description</li>
+                        <li><strong>Quick review:</strong> Submissions reviewed within 24-48 hours</li>
                     </ul>
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+
 {% endblock %}

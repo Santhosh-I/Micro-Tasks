@@ -21,7 +21,7 @@
                                 <th>Task</th>
                                 <th>User</th>
                                 <th>Email</th>
-                                <th>Proof Image</th>
+                                <th>Proof Images</th>
                                 <th>Submitted</th>
                                 <th>Status</th>
                                 <th>Actions</th>
@@ -34,15 +34,49 @@
                                     <td><strong>{{ submission.task_title }}</strong></td>
                                     <td>{{ submission.user_name }}</td>
                                     <td>{{ submission.user_email }}</td>
-                                    <td>
+                                    <td class="proof-images-cell">
                                         {% if submission.proof_image %}
-                                            <img src="{{ url_for('static', filename='uploads/submissions/' + submission.proof_image) }}" alt="Proof" class="table-image" onclick="openImageModal(this.src)">
+                                            {% set image_files = submission.proof_image.split(',') %}
+                                            <div class="proof-images-container">
+                                                {% for image in image_files %}
+                                                    {% if image.strip() %}
+                                                        <div class="proof-image-item">
+                                                            <img src="{{ url_for('static', filename='uploads/submissions/' + image.strip()) }}" 
+                                                                 alt="Proof {{ loop.index }}" 
+                                                                 class="table-image clickable-image"
+                                                                 data-image-url="{{ url_for('static', filename='uploads/submissions/' + image.strip()) }}"
+                                                                 data-user-name="{{ submission.user_name }}"
+                                                                 data-image-number="{{ loop.index }}"
+                                                                 data-total-images="{{ image_files|length }}"
+                                                                 onclick="openFullscreenModalSafe(this)">
+                                                            <span class="image-number">{{ loop.index }}</span>
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </div>
+                                            <div class="image-count">
+                                                <small>{{ image_files|length }} image(s)</small>
+                                                {% if image_files|length > 1 %}
+                                                <button type="button" 
+                                                        class="btn btn-xs btn-outline-primary view-all-btn"
+                                                        data-submission-id="{{ submission.id }}"
+                                                        data-user-name="{{ submission.user_name }}"
+                                                        data-images="{% for img in image_files %}{{ url_for('static', filename='uploads/submissions/' + img.strip()) }}{% if not loop.last %},{% endif %}{% endfor %}"
+                                                        onclick="openGalleryModalSafe(this)">
+                                                    View All
+                                                </button>
+                                                {% endif %}
+                                            </div>
                                         {% else %}
-                                            No image
+                                            <span class="no-images">No images</span>
                                         {% endif %}
                                     </td>
                                     <td>{{ submission.submitted_at[:10] if submission.submitted_at else 'N/A' }}</td>
-                                    <td><span class="status-badge status-{{ submission.status }}">{{ submission.status.title() }}</span></td>
+                                    <td>
+                                        <span class="status-badge status-{{ submission.status }}">
+                                            {{ submission.status.title() }}
+                                        </span>
+                                    </td>
                                     <td>
                                         {% if submission.status == 'pending' %}
                                             <div class="action-buttons">
@@ -51,12 +85,11 @@
                                                     <input type="hidden" name="status" value="approved">
                                                     <button type="submit" class="btn btn-sm btn-success">Approve</button>
                                                 </form>
-                                                <form method="POST" action="{{ url_for('admin_update_submission') }}" style="display:inline;">
-                                                    <input type="hidden" name="submission_id" value="{{ submission.id }}">
-                                                    <input type="hidden" name="status" value="rejected">
-                                                    <input type="hidden" name="notes" value="Does not meet requirements">
-                                                    <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                                                </form>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-danger"
+                                                        onclick="openRejectModal('{{ submission.id }}')">
+                                                    Reject
+                                                </button>
                                             </div>
                                         {% else %}
                                             <span class="text-muted">Reviewed</span>
@@ -76,11 +109,797 @@
     </div>
 </section>
 
-<!-- Image Modal -->
-<div id="imageModal" class="modal" onclick="closeImageModal()">
-    <div class="modal-content">
-        <img id="modalImage" src="" alt="Proof Image">
-        <span class="modal-close" onclick="closeImageModal()">&times;</span>
+<!-- Full-Screen Image Modal -->
+<div id="fullscreenModal" class="fullscreen-modal" onclick="closeFullscreenModal()">
+    <div class="fullscreen-content">
+        <div class="fullscreen-header">
+            <h4 id="fullscreenTitle">Image Preview</h4>
+            <div class="fullscreen-controls">
+                <button type="button" class="control-btn" onclick="downloadImage()" title="Download Image">
+                    📥
+                </button>
+                <span class="fullscreen-close" onclick="closeFullscreenModal()" title="Close">&times;</span>
+            </div>
+        </div>
+        <div class="fullscreen-body">
+            <img id="fullscreenImage" src="" alt="Full Screen Image" onclick="event.stopPropagation()">
+        </div>
+        <div class="fullscreen-footer">
+            <div class="image-info">
+                <span id="imageInfo">Loading...</span>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeFullscreenModal()">Close</button>
+                <button type="button" class="btn btn-primary" onclick="downloadImage()">Download</button>
+            </div>
+        </div>
     </div>
 </div>
+
+<!-- Gallery Modal for Multiple Images -->
+<div id="galleryModal" class="modal gallery-modal" onclick="closeGalleryModal()">
+    <div class="modal-content gallery-modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h4 id="galleryTitle">Submission Images</h4>
+            <span class="modal-close" onclick="closeGalleryModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="gallery-container">
+                <div class="gallery-main">
+                    <img id="galleryMainImage" src="" alt="Main Image">
+                    <div class="gallery-navigation">
+                        <button type="button" id="prevBtn" onclick="changeGalleryImage(-1)">❮</button>
+                        <span id="imageCounter">1 / 1</span>
+                        <button type="button" id="nextBtn" onclick="changeGalleryImage(1)">❯</button>
+                    </div>
+                </div>
+                <div class="gallery-thumbnails" id="galleryThumbnails">
+                    <!-- Thumbnails will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeGalleryModal()">Close</button>
+            <button type="button" class="btn btn-primary" onclick="downloadCurrentGalleryImage()">Download Current</button>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div id="rejectModal" class="modal" onclick="closeRejectModal()">
+    <div class="modal-content reject-modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h4>Reject Submission</h4>
+            <span class="modal-close" onclick="closeRejectModal()">&times;</span>
+        </div>
+        <form method="POST" action="{{ url_for('admin_update_submission') }}" id="rejectForm">
+            <div class="modal-body">
+                <input type="hidden" name="submission_id" id="rejectSubmissionId" value="">
+                <input type="hidden" name="status" value="rejected">
+                
+                <div class="form-group">
+                    <label for="rejectionReason">Reason for rejection:</label>
+                    <select id="rejectionReason" onchange="updateRejectNotes()" class="form-control">
+                        <option value="">Select a reason...</option>
+                        <option value="poor_quality">Poor image quality</option>
+                        <option value="incomplete">Task not completed properly</option>
+                        <option value="not_matching">Doesn't match task requirements</option>
+                        <option value="insufficient_proof">Insufficient proof provided</option>
+                        <option value="inappropriate">Inappropriate content</option>
+                        <option value="custom">Custom reason (type below)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="customNotes">Additional notes:</label>
+                    <textarea name="notes" id="customNotes" rows="4" class="form-control" 
+                              placeholder="Please provide specific feedback to help the user improve..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Reject Submission</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Enhanced styles for multiple image display */
+.proof-images-cell {
+    min-width: 150px;
+    max-width: 200px;
+}
+
+.proof-images-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.proof-image-item {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.table-image {
+    width: 50px;
+    height: 50px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.clickable-image {
+    cursor: zoom-in;
+}
+
+.clickable-image:hover {
+    border-color: #007bff;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.image-number {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #007bff;
+    color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.image-count {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.view-all-btn {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    margin-left: 5px;
+    border: 1px solid #007bff;
+    color: #007bff;
+    background: white;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.view-all-btn:hover {
+    background: #007bff;
+    color: white;
+}
+
+.no-images {
+    color: #999;
+    font-style: italic;
+}
+
+/* Full-Screen Modal Styles */
+.fullscreen-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(2px);
+}
+
+.fullscreen-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.fullscreen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    border-bottom: 1px solid #333;
+}
+
+.fullscreen-header h4 {
+    margin: 0;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.fullscreen-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.control-btn {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.fullscreen-close {
+    font-size: 32px;
+    font-weight: bold;
+    color: white;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    background: none;
+    border: none;
+    padding: 0;
+    line-height: 1;
+}
+
+.fullscreen-close:hover {
+    color: #ff6b6b;
+}
+
+.fullscreen-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    overflow: hidden;
+}
+
+#fullscreenImage {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.fullscreen-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background: rgba(0, 0, 0, 0.8);
+    border-top: 1px solid #333;
+    color: white;
+}
+
+.image-info {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Regular Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    max-width: 90%;
+    max-height: 90%;
+    overflow: hidden;
+}
+
+.gallery-modal-content {
+    max-width: 95%;
+    max-height: 95%;
+}
+
+.reject-modal-content {
+    max-width: 500px;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.modal-header h4 {
+    margin: 0;
+    color: #333;
+}
+
+.modal-close {
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #000;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #dee2e6;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+/* Gallery Styles */
+.gallery-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.gallery-main {
+    position: relative;
+    text-align: center;
+}
+
+#galleryMainImage {
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.gallery-navigation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.gallery-navigation button {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.gallery-navigation button:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.gallery-navigation button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+#imageCounter {
+    font-weight: bold;
+    min-width: 60px;
+}
+
+.gallery-thumbnails {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.thumbnail {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.thumbnail:hover,
+.thumbnail.active {
+    border-color: #007bff;
+    transform: scale(1.05);
+}
+
+/* Action buttons */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 120px;
+}
+
+.action-buttons .btn {
+    white-space: nowrap;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+}
+
+.btn-sm {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.btn-primary {
+    background-color: #007bff;
+    border-color: #007bff;
+    color: white;
+}
+
+.btn {
+    border-radius: 4px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .proof-images-container {
+        justify-content: center;
+    }
+    
+    .table-image {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .action-buttons {
+        min-width: 100px;
+    }
+    
+    .action-buttons .btn {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .modal-content {
+        margin: 2% auto;
+        max-width: 98%;
+    }
+    
+    .fullscreen-header,
+    .fullscreen-footer {
+        padding: 0.5rem 1rem;
+    }
+    
+    .fullscreen-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .modal-actions {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+.text-muted {
+    color: #6c757d;
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-pending {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status-approved {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-rejected {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+</style>
+
+<script>
+var currentGalleryImages = [];
+var currentImageIndex = 0;
+var currentImageSrc = '';
+
+// Safe modal functions using data attributes
+function openFullscreenModalSafe(element) {
+    var imageUrl = element.getAttribute('data-image-url');
+    var userName = element.getAttribute('data-user-name');
+    var imageNumber = parseInt(element.getAttribute('data-image-number'));
+    var totalImages = parseInt(element.getAttribute('data-total-images'));
+    
+    openFullscreenModal(imageUrl, userName, imageNumber, totalImages);
+}
+
+function openGalleryModalSafe(element) {
+    var submissionId = element.getAttribute('data-submission-id');
+    var userName = element.getAttribute('data-user-name');
+    var imagesString = element.getAttribute('data-images');
+    var images = imagesString.split(',');
+    
+    openGalleryModal(submissionId, userName, images);
+}
+
+// Full-screen modal functions
+function openFullscreenModal(src, userName, imageNumber, totalImages) {
+    currentImageSrc = src;
+    var modal = document.getElementById('fullscreenModal');
+    var image = document.getElementById('fullscreenImage');
+    var title = document.getElementById('fullscreenTitle');
+    var info = document.getElementById('imageInfo');
+    
+    // Set title and info
+    title.textContent = userName + ' - Proof Image ' + imageNumber + ' of ' + totalImages;
+    info.textContent = 'Image ' + imageNumber + ' of ' + totalImages;
+    
+    // Show modal
+    modal.style.display = 'block';
+    
+    // Load image
+    image.onload = function() {
+        console.log('Image loaded successfully');
+    };
+    
+    image.onerror = function() {
+        console.log('Failed to load image');
+        image.alt = 'Failed to load image';
+    };
+    
+    image.src = src;
+    
+    // Prevent body scrolling
+    document.body.style.overflow = 'hidden';
+}
+
+function closeFullscreenModal() {
+    var modal = document.getElementById('fullscreenModal');
+    var image = document.getElementById('fullscreenImage');
+    
+    modal.style.display = 'none';
+    image.src = '';
+    currentImageSrc = '';
+    
+    // Restore body scrolling
+    document.body.style.overflow = 'auto';
+}
+
+// Gallery modal functions
+function openGalleryModal(submissionId, userName, images) {
+    currentGalleryImages = images;
+    currentImageIndex = 0;
+    
+    document.getElementById('galleryTitle').textContent = userName + ' - Submission Images';
+    
+    // Populate thumbnails
+    var thumbnailsContainer = document.getElementById('galleryThumbnails');
+    thumbnailsContainer.innerHTML = '';
+    
+    for (var i = 0; i < images.length; i++) {
+        var thumb = document.createElement('img');
+        thumb.src = images[i];
+        thumb.className = 'thumbnail';
+        thumb.setAttribute('data-index', i);
+        thumb.onclick = function() { 
+            goToImage(parseInt(this.getAttribute('data-index'))); 
+        };
+        if (i === 0) thumb.classList.add('active');
+        thumbnailsContainer.appendChild(thumb);
+    }
+    
+    updateGalleryDisplay();
+    document.getElementById('galleryModal').style.display = 'block';
+}
+
+function closeGalleryModal() {
+    document.getElementById('galleryModal').style.display = 'none';
+}
+
+function changeGalleryImage(direction) {
+    currentImageIndex += direction;
+    if (currentImageIndex < 0) currentImageIndex = currentGalleryImages.length - 1;
+    if (currentImageIndex >= currentGalleryImages.length) currentImageIndex = 0;
+    updateGalleryDisplay();
+}
+
+function goToImage(index) {
+    currentImageIndex = index;
+    updateGalleryDisplay();
+}
+
+function updateGalleryDisplay() {
+    var mainImage = document.getElementById('galleryMainImage');
+    var counter = document.getElementById('imageCounter');
+    var thumbnails = document.querySelectorAll('.thumbnail');
+    
+    mainImage.src = currentGalleryImages[currentImageIndex];
+    counter.textContent = (currentImageIndex + 1) + ' / ' + currentGalleryImages.length;
+    
+    // Update thumbnail active state
+    for (var i = 0; i < thumbnails.length; i++) {
+        if (i === currentImageIndex) {
+            thumbnails[i].classList.add('active');
+        } else {
+            thumbnails[i].classList.remove('active');
+        }
+    }
+    
+    // Update navigation buttons
+    document.getElementById('prevBtn').disabled = currentGalleryImages.length <= 1;
+    document.getElementById('nextBtn').disabled = currentGalleryImages.length <= 1;
+}
+
+// Reject modal functions
+function openRejectModal(submissionId) {
+    document.getElementById('rejectSubmissionId').value = submissionId;
+    document.getElementById('rejectionReason').value = '';
+    document.getElementById('customNotes').value = '';
+    document.getElementById('rejectModal').style.display = 'block';
+}
+
+function closeRejectModal() {
+    document.getElementById('rejectModal').style.display = 'none';
+}
+
+function updateRejectNotes() {
+    var reason = document.getElementById('rejectionReason').value;
+    var notesField = document.getElementById('customNotes');
+    
+    var reasonTexts = {
+        'poor_quality': 'The submitted images are of poor quality. Please ensure images are clear, well-lit, and in focus.',
+        'incomplete': 'The task appears to be incomplete based on the submitted proof. Please review the task requirements.',
+        'not_matching': 'The submitted proof does not match the task requirements. Please carefully read the task description.',
+        'insufficient_proof': 'The proof provided is insufficient to verify task completion. Please provide more comprehensive evidence.',
+        'inappropriate': 'The submitted content is inappropriate. Please ensure all submissions follow our community guidelines.'
+    };
+    
+    if (reason && reason !== 'custom') {
+        notesField.value = reasonTexts[reason];
+    } else if (reason === 'custom') {
+        notesField.value = '';
+        notesField.focus();
+    }
+}
+
+// Download functions
+function downloadImage() {
+    if (currentImageSrc) {
+        var link = document.createElement('a');
+        link.href = currentImageSrc;
+        link.download = 'proof_image_' + new Date().getTime() + '.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+function downloadCurrentGalleryImage() {
+    if (currentGalleryImages.length > 0) {
+        var link = document.createElement('a');
+        link.href = currentGalleryImages[currentImageIndex];
+        link.download = 'gallery_image_' + (currentImageIndex + 1) + '_' + new Date().getTime() + '.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', function(e) {
+    if (document.getElementById('galleryModal').style.display === 'block') {
+        if (e.key === 'ArrowLeft') changeGalleryImage(-1);
+        if (e.key === 'ArrowRight') changeGalleryImage(1);
+        if (e.key === 'Escape') closeGalleryModal();
+        if (e.key === 'd' || e.key === 'D') downloadCurrentGalleryImage();
+    }
+    if (document.getElementById('fullscreenModal').style.display === 'block') {
+        if (e.key === 'Escape') closeFullscreenModal();
+        if (e.key === 'd' || e.key === 'D') downloadImage();
+    }
+    if (document.getElementById('rejectModal').style.display === 'block') {
+        if (e.key === 'Escape') closeRejectModal();
+    }
+});
+</script>
 {% endblock %}

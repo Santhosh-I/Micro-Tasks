@@ -86,18 +86,24 @@ def add_task(title, description, reference_image):
         print('Error adding task:', e)
         return None
 
-def add_submission(task_id, user_name, user_email, proof_image):
+def add_submission(task_id, user_name, user_email, proof_images):
+    """Add submission with multiple proof images (1-3 images)"""
     try:
         wb = load_workbook(SUBMISSIONS_DB_PATH)
         ws = wb.active
         submission_id = str(uuid.uuid4())[:8]
-        ws.append([submission_id, task_id, user_name, user_email, proof_image,
+        
+        # Store multiple image filenames as comma-separated string
+        images_csv = ','.join(proof_images) if isinstance(proof_images, list) else proof_images
+        
+        ws.append([submission_id, task_id, user_name, user_email, images_csv,
                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'pending', ''])
         wb.save(SUBMISSIONS_DB_PATH)
         return submission_id
     except Exception as e:
         print('Error adding submission:', e)
         return None
+
 
 def get_submissions():
     try:
@@ -213,27 +219,51 @@ def submit_task(task_id):
 
     user_name = request.form.get('user_name', '').strip()
     user_email = request.form.get('user_email', '').strip()
-    proof_file = request.files.get('proof_image')
+    
+    # Get multiple files from form
+    uploaded_files = request.files.getlist('proof_image')
 
-    if not user_name or not user_email or not proof_file:
-        flash('All fields are required!', 'error')
+    if not user_name or not user_email or not uploaded_files:
+        flash('All fields are required! Please upload at least 2 images.', 'error')
         return redirect(url_for('task_detail', task_id=task_id))
 
-    if not allowed_file(proof_file.filename):
-        flash('Invalid file type.', 'error')
+    # Validate number of files (2 to 3 images required)
+    if len(uploaded_files) < 1 or len(uploaded_files) > 3:
+        flash('Please upload between 1 to 3 images as proof.', 'error')
         return redirect(url_for('task_detail', task_id=task_id))
 
+    # Validate and save each file
+    saved_filenames = []
+    for i, file in enumerate(uploaded_files):
+        if not file or not file.filename:
+            flash(f'Image {i+1} is empty. Please select valid files.', 'error')
+            return redirect(url_for('task_detail', task_id=task_id))
+            
+        if not allowed_file(file.filename):
+            flash(f'Image {i+1} has invalid file type. Please use PNG, JPG, JPEG, GIF, or WEBP.', 'error')
+            return redirect(url_for('task_detail', task_id=task_id))
+
+    # Save all files if validation passes
     try:
-        filename = secure_filename(
-            f"{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{proof_file.filename}")
-        proof_file.save(os.path.join(UPLOAD_FOLDER_SUBMISSIONS, filename))
-        add_submission(task_id, user_name, user_email, filename)
-        flash('Your proof has been submitted successfully!', 'success')
+        for i, file in enumerate(uploaded_files):
+            filename = secure_filename(
+                f"{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{i+1}_{file.filename}")
+            file.save(os.path.join(UPLOAD_FOLDER_SUBMISSIONS, filename))
+            saved_filenames.append(filename)
+        
+        # Add submission with multiple images
+        submission_id = add_submission(task_id, user_name, user_email, saved_filenames)
+        
+        if submission_id:
+            flash(f'Your proof has been submitted successfully with {len(saved_filenames)} images!', 'success')
+        else:
+            flash('Error submitting proof. Please try again.', 'error')
     except Exception as e:
-        flash('Error uploading file.', 'error')
+        flash('Error uploading files. Please try again.', 'error')
         print('Upload error:', e)
 
     return redirect(url_for('index'))
+
 
 # --------------------------- Admin auth -------------------------------
 @app.route('/admin')
