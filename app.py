@@ -55,9 +55,11 @@ def init_excel_files():
         wb = Workbook()
         ws = wb.active
         ws.title = 'Submissions'
-        ws.append(['id', 'task_id', 'user_name', 'user_email',
+        # Added mobile_number column
+        ws.append(['id', 'task_id', 'user_name', 'user_email', 'mobile_number',
                    'proof_image', 'submitted_at', 'status', 'admin_notes'])
         wb.save(SUBMISSIONS_DB_PATH)
+
 
 def get_tasks():
     try:
@@ -86,8 +88,8 @@ def add_task(title, description, reference_image):
         print('Error adding task:', e)
         return None
 
-def add_submission(task_id, user_name, user_email, proof_images):
-    """Add submission with multiple proof images (1-3 images)"""
+def add_submission(task_id, user_name, user_email, mobile_number, proof_images):
+    """Add submission with mobile number and multiple proof images (1-3 images)"""
     try:
         wb = load_workbook(SUBMISSIONS_DB_PATH)
         ws = wb.active
@@ -96,7 +98,8 @@ def add_submission(task_id, user_name, user_email, proof_images):
         # Store multiple image filenames as comma-separated string
         images_csv = ','.join(proof_images) if isinstance(proof_images, list) else proof_images
         
-        ws.append([submission_id, task_id, user_name, user_email, images_csv,
+        # Updated to include mobile_number
+        ws.append([submission_id, task_id, user_name, user_email, mobile_number, images_csv,
                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'pending', ''])
         wb.save(SUBMISSIONS_DB_PATH)
         return submission_id
@@ -219,15 +222,22 @@ def submit_task(task_id):
 
     user_name = request.form.get('user_name', '').strip()
     user_email = request.form.get('user_email', '').strip()
+    mobile_number = request.form.get('mobile_number', '').strip()  # NEW FIELD
     
     # Get multiple files from form
     uploaded_files = request.files.getlist('proof_image')
 
-    if not user_name or not user_email or not uploaded_files:
-        flash('All fields are required! Please upload at least 2 images.', 'error')
+    # Updated validation to include mobile number
+    if not user_name or not user_email or not mobile_number or not uploaded_files:
+        flash('All fields are required! Please fill in name, email, mobile number and upload at least 1 image.', 'error')
         return redirect(url_for('task_detail', task_id=task_id))
 
-    # Validate number of files (2 to 3 images required)
+    # Validate mobile number (basic validation)
+    if len(mobile_number) < 10 or not mobile_number.isdigit():
+        flash('Please enter a valid mobile number (minimum 10 digits).', 'error')
+        return redirect(url_for('task_detail', task_id=task_id))
+
+    # Validate number of files (1 to 3 images required)
     if len(uploaded_files) < 1 or len(uploaded_files) > 3:
         flash('Please upload between 1 to 3 images as proof.', 'error')
         return redirect(url_for('task_detail', task_id=task_id))
@@ -251,8 +261,8 @@ def submit_task(task_id):
             file.save(os.path.join(UPLOAD_FOLDER_SUBMISSIONS, filename))
             saved_filenames.append(filename)
         
-        # Add submission with multiple images
-        submission_id = add_submission(task_id, user_name, user_email, saved_filenames)
+        # Add submission with mobile number and multiple images
+        submission_id = add_submission(task_id, user_name, user_email, mobile_number, saved_filenames)
         
         if submission_id:
             flash(f'Your proof has been submitted successfully with {len(saved_filenames)} images!', 'success')
@@ -263,6 +273,7 @@ def submit_task(task_id):
         print('Upload error:', e)
 
     return redirect(url_for('index'))
+
 
 
 # --------------------------- Admin auth -------------------------------

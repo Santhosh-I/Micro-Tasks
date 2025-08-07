@@ -21,6 +21,7 @@
                                 <th>Task</th>
                                 <th>User</th>
                                 <th>Email</th>
+                                <th>Mobile</th>
                                 <th>Proof Images</th>
                                 <th>Submitted</th>
                                 <th>Status</th>
@@ -34,6 +35,7 @@
                                     <td><strong>{{ submission.task_title }}</strong></td>
                                     <td>{{ submission.user_name }}</td>
                                     <td>{{ submission.user_email }}</td>
+                                    <td>{{ submission.mobile_number if submission.mobile_number else 'Not provided' }}</td>
                                     <td class="proof-images-cell">
                                         {% if submission.proof_image %}
                                             {% set image_files = submission.proof_image.split(',') %}
@@ -205,7 +207,7 @@
 </div>
 
 <style>
-/* Enhanced styles for multiple image display */
+/* Enhanced styles for multiple image display with new color theme */
 .proof-images-cell {
     min-width: 150px;
     max-width: 200px;
@@ -237,16 +239,16 @@
 }
 
 .clickable-image:hover {
-    border-color: #007bff;
+    border-color: #6B8E6B;
     transform: scale(1.1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .image-number {
     position: absolute;
     top: -5px;
     right: -5px;
-    background: #007bff;
+    background: #6B8E6B;
     color: white;
     border-radius: 50%;
     width: 18px;
@@ -263,27 +265,27 @@
     justify-content: space-between;
     align-items: center;
     font-size: 0.75rem;
-    color: #666;
+    color: #666666;
 }
 
 .view-all-btn {
     font-size: 0.7rem;
     padding: 2px 6px;
     margin-left: 5px;
-    border: 1px solid #007bff;
-    color: #007bff;
+    border: 1px solid #6B8E6B;
+    color: #6B8E6B;
     background: white;
     border-radius: 3px;
     cursor: pointer;
 }
 
 .view-all-btn:hover {
-    background: #007bff;
+    background: #6B8E6B;
     color: white;
 }
 
 .no-images {
-    color: #999;
+    color: #999999;
     font-style: italic;
 }
 
@@ -297,7 +299,7 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: rgba(0, 0, 0, 0.95);
+    background-color: rgba(45, 45, 45, 0.95);
     backdrop-filter: blur(2px);
 }
 
@@ -314,9 +316,9 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(45, 45, 45, 0.9);
     color: white;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid #4A6B4A;
 }
 
 .fullscreen-header h4 {
@@ -343,8 +345,8 @@
 }
 
 .control-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.5);
+    background: #6B8E6B;
+    border-color: #8BA88B;
 }
 
 .fullscreen-close {
@@ -360,7 +362,7 @@
 }
 
 .fullscreen-close:hover {
-    color: #ff6b6b;
+    color: #EF4444;
 }
 
 .fullscreen-body {
@@ -377,7 +379,7 @@
     max-height: 100%;
     object-fit: contain;
     border-radius: 8px;
-    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease;
 }
 
@@ -386,14 +388,15 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 2rem;
-    background: rgba(0, 0, 0, 0.8);
-    border-top: 1px solid #333;
+    background: rgba(45, 45, 45, 0.9);
+    border-top: 1px solid #4A6B4A;
     color: white;
 }
 
 .image-info {
     font-size: 0.9rem;
     opacity: 0.8;
+    color: #F5F3F0;
 }
 
 .modal-actions {
@@ -410,18 +413,19 @@
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0,0,0,0.8);
+    background-color: rgba(45, 45, 45, 0.8);
     backdrop-filter: blur(2px);
 }
 
 .modal-content {
-    background-color: #fefefe;
+    background-color: #F5F3F0;
     margin: 5% auto;
     border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
     max-width: 90%;
     max-height: 90%;
     overflow: hidden;
+    border: 1px solid #E5E5E5;
 }
 
 .gallery-modal-content {
@@ -438,35 +442,36 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    border-bottom: 1px solid #dee2e6;
-    background: #f8f9fa;
+    border-bottom: 1px solid #E5E5E5;
+    background: #E8E3DC;
 }
 
 .modal-header h4 {
     margin: 0;
-    color: #333;
+    color: #2D2D2D;
 }
 
 .modal-close {
     font-size: 28px;
     font-weight: bold;
-    color: #aaa;
+    color: #999999;
     cursor: pointer;
     transition: color 0.2s;
 }
 
 .modal-close:hover {
-    color: #000;
+    color: #2D2D2D;
 }
 
 .modal-body {
     padding: 1.5rem;
+    background: #F5F3F0;
 }
 
 .modal-footer {
     padding: 1rem 1.5rem;
-    border-top: 1px solid #dee2e6;
-    background: #f8f9fa;
+    border-top: 1px solid #E5E5E5;
+    background: #E8E3DC;
     display: flex;
     justify-content: flex-end;
     gap: 0.5rem;
@@ -489,7 +494,8 @@
     max-height: 60vh;
     object-fit: contain;
     border-radius: 4px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid #E5E5E5;
 }
 
 .gallery-navigation {
@@ -501,7 +507,7 @@
 }
 
 .gallery-navigation button {
-    background: #007bff;
+    background: #6B8E6B;
     color: white;
     border: none;
     border-radius: 50%;
@@ -510,20 +516,23 @@
     font-size: 18px;
     cursor: pointer;
     transition: background-color 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .gallery-navigation button:hover:not(:disabled) {
-    background: #0056b3;
+    background: #4A6B4A;
 }
 
 .gallery-navigation button:disabled {
-    background: #ccc;
+    background: #E5E5E5;
+    color: #999999;
     cursor: not-allowed;
 }
 
 #imageCounter {
     font-weight: bold;
     min-width: 60px;
+    color: #2D2D2D;
 }
 
 .gallery-thumbnails {
@@ -545,8 +554,9 @@
 
 .thumbnail:hover,
 .thumbnail.active {
-    border-color: #007bff;
+    border-color: #6B8E6B;
     transform: scale(1.05);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 /* Action buttons */
@@ -569,27 +579,47 @@
 }
 
 .btn-success {
-    background-color: #28a745;
-    border-color: #28a745;
+    background-color: #22C55E;
+    border-color: #22C55E;
     color: white;
+}
+
+.btn-success:hover {
+    background-color: #16A34A;
+    border-color: #16A34A;
 }
 
 .btn-danger {
-    background-color: #dc3545;
-    border-color: #dc3545;
+    background-color: #EF4444;
+    border-color: #EF4444;
     color: white;
+}
+
+.btn-danger:hover {
+    background-color: #DC2626;
+    border-color: #DC2626;
 }
 
 .btn-secondary {
-    background-color: #6c757d;
-    border-color: #6c757d;
+    background-color: #666666;
+    border-color: #666666;
     color: white;
 }
 
+.btn-secondary:hover {
+    background-color: #4A6B4A;
+    border-color: #4A6B4A;
+}
+
 .btn-primary {
-    background-color: #007bff;
-    border-color: #007bff;
+    background-color: #6B8E6B;
+    border-color: #6B8E6B;
     color: white;
+}
+
+.btn-primary:hover {
+    background-color: #4A6B4A;
+    border-color: #4A6B4A;
 }
 
 .btn {
@@ -597,11 +627,13 @@
     border: 1px solid transparent;
     cursor: pointer;
     transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .btn:hover {
     opacity: 0.9;
     transform: translateY(-1px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
 /* Form styles */
@@ -613,20 +645,24 @@
     display: block;
     margin-bottom: 0.5rem;
     font-weight: bold;
+    color: #2D2D2D;
 }
 
 .form-control {
     width: 100%;
     padding: 0.5rem;
-    border: 1px solid #ccc;
+    border: 1px solid #E5E5E5;
     border-radius: 4px;
     font-size: 0.9rem;
+    background-color: #F5F3F0;
+    color: #2D2D2D;
+    transition: border-color 0.2s ease;
 }
 
 .form-control:focus {
-    border-color: #007bff;
+    border-color: #6B8E6B;
     outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 2px rgba(107, 142, 107, 0.25);
 }
 
 /* Responsive design */
@@ -671,7 +707,7 @@
 }
 
 .text-muted {
-    color: #6c757d;
+    color: #999999;
 }
 
 .status-badge {
@@ -683,20 +719,24 @@
 }
 
 .status-pending {
-    background-color: #fff3cd;
-    color: #856404;
+    background-color: rgba(245, 158, 11, 0.1);
+    color: #F59E0B;
+    border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
 .status-approved {
-    background-color: #d4edda;
-    color: #155724;
+    background-color: rgba(34, 197, 94, 0.1);
+    color: #22C55E;
+    border: 1px solid rgba(34, 197, 94, 0.2);
 }
 
 .status-rejected {
-    background-color: #f8d7da;
-    color: #721c24;
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #EF4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
 }
 </style>
+
 
 <script>
 var currentGalleryImages = [];
@@ -901,5 +941,28 @@ document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') closeRejectModal();
     }
 });
+
+// Add this to your form submission validation
+document.getElementById('submissionForm').addEventListener('submit', function(e) {
+    var mobileNumber = document.getElementById('mobile_number').value.trim();
+    
+    // Mobile number validation
+    if (mobileNumber.length < 10 || mobileNumber.length > 15 || !/^\d+$/.test(mobileNumber)) {
+        e.preventDefault();
+        alert('Please enter a valid mobile number (10-15 digits only).');
+        return false;
+    }
+    
+    if (selectedFiles.length < 1 || selectedFiles.length > 3) {
+        e.preventDefault();
+        alert('Please select between 1 to 3 images before submitting.');
+        return false;
+    }
+    
+    // Show loading state
+    submitBtn.textContent = 'Uploading...';
+    submitBtn.disabled = true;
+});
+
 </script>
 {% endblock %}
