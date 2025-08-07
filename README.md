@@ -277,9 +277,18 @@ If you encounter any issues or have questions:
   <p><em>Made with ❤️ for the developer community</em></p>
 </div>
 
+---
+
 <div align="center">
-  <h3>Made by *TECH KNOX* 🦇 </h3>
+  <h3>Built by *TECH KNOX* 🦇 </h3>
 </div>
+## 📞 Support & Services
+
+**Tech Knox** - Technology Solutions Provider
+- 🏢 **Company**: Tech Knox
+- 📧 **Contact**: techknoxofficial.com
+- 🌐 **Website**: https://techknox.com (Coming soon...)
+- 📱 **Services**: Custom Software Development, Web Applications, Digital Solutions
 
 ---
 
