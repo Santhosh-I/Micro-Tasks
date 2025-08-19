@@ -76,7 +76,8 @@
                                     <td>{{ submission.submitted_at[:10] if submission.submitted_at else 'N/A' }}</td>
                                     <td>
                                         <span class="status-badge status-{{ submission.status }}">
-                                            {{ submission.status.title() }}
+                                            {{ (submission.status or 'pending').title() }}
+
                                         </span>
                                     </td>
                                     <td>

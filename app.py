@@ -7,6 +7,12 @@ from datetime import datetime
 import uuid
 from dotenv import load_dotenv
 
+import cv2
+from skimage.metrics import structural_similarity as ssim
+from PIL import Image
+import imagehash
+import numpy as np
+
 # Load environment variables FIRST
 load_dotenv()
 
@@ -94,18 +100,17 @@ def add_submission(task_id, user_name, user_email, mobile_number, proof_images):
         wb = load_workbook(SUBMISSIONS_DB_PATH)
         ws = wb.active
         submission_id = str(uuid.uuid4())[:8]
-        
-        # Store multiple image filenames as comma-separated string
         images_csv = ','.join(proof_images) if isinstance(proof_images, list) else proof_images
         
-        # Updated to include mobile_number
+        # Ensure status is always 'pending' (never None)
         ws.append([submission_id, task_id, user_name, user_email, mobile_number, images_csv,
-                   datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'pending', ''])
+                  datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'pending', ''])
         wb.save(SUBMISSIONS_DB_PATH)
         return submission_id
     except Exception as e:
         print('Error adding submission:', e)
         return None
+
 
 
 def get_submissions():
@@ -118,6 +123,107 @@ def get_submissions():
     except Exception as e:
         print('Error loading submissions:', e)
         return []
+    
+def preprocess_image_for_comparison(image_path, output_size=(512, 512)):
+    """
+    Preprocess images to improve comparison accuracy
+    """
+    try:
+        img = cv2.imread(image_path)
+        
+        # 1. Resize to standard size
+        img = cv2.resize(img, output_size)
+        
+        # 2. Noise reduction
+        img = cv2.bilateralFilter(img, 9, 75, 75)
+        
+        # 3. Enhance contrast
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        lab[:,:,0] = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8,8)).apply(lab[:,:,0])
+        img = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+        
+        # Save processed image temporarily
+        temp_path = image_path.replace('.', '_processed.')
+        cv2.imwrite(temp_path, img)
+        
+        return temp_path
+        
+    except Exception as e:
+        print(f"Preprocessing error: {e}")
+        return image_path  # Return original if processing fails
+
+    
+def calculate_similarity_score(admin_image_path, user_image_path):
+    """
+    Enhanced similarity calculation with multiple methods for higher accuracy
+    Returns score between 0.0 and 1.0 (higher = more similar)
+    """
+    try:
+        # Load images
+        img1 = cv2.imread(admin_image_path)
+        img2 = cv2.imread(user_image_path)
+        
+        if img1 is None or img2 is None:
+            return 0.0
+        
+        # Resize to same dimensions for comparison
+        height, width = img1.shape[:2]
+        img2 = cv2.resize(img2, (width, height))
+        
+        scores = []
+        
+        # Method 1: SSIM with multiple color channels
+        gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
+        gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
+        ssim_score = ssim(gray1, gray2)
+        scores.append(('ssim', ssim_score, 0.3))  # 30% weight
+        
+        # Method 2: Histogram comparison (color distribution)
+        hist1 = cv2.calcHist([img1], [0, 1, 2], None, [50, 50, 50], [0, 256, 0, 256, 0, 256])
+        hist2 = cv2.calcHist([img2], [0, 1, 2], None, [50, 50, 50], [0, 256, 0, 256, 0, 256])
+        hist_corr = cv2.compareHist(hist1, hist2, cv2.HISTCMP_CORREL)
+        scores.append(('histogram', hist_corr, 0.25))  # 25% weight
+        
+        # Method 3: Enhanced perceptual hash
+        hash1 = imagehash.average_hash(Image.open(admin_image_path), hash_size=16)
+        hash2 = imagehash.average_hash(Image.open(user_image_path), hash_size=16)
+        hash_diff = hash1 - hash2
+        hash_similarity = max(0, (64 - hash_diff) / 64)  # 64 bits for 16x16 hash
+        scores.append(('hash', hash_similarity, 0.2))  # 20% weight
+        
+        # Method 4: Feature matching with ORB
+        orb = cv2.ORB_create(nfeatures=500)
+        kp1, des1 = orb.detectAndCompute(gray1, None)
+        kp2, des2 = orb.detectAndCompute(gray2, None)
+        
+        if des1 is not None and des2 is not None:
+            bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+            matches = bf.match(des1, des2)
+            matches = sorted(matches, key=lambda x: x.distance)
+            
+            # Calculate feature similarity based on good matches
+            good_matches = [m for m in matches if m.distance < 50]
+            feature_similarity = min(len(good_matches) / 20, 1.0)  # Normalize to 0-1
+        else:
+            feature_similarity = 0.0
+        
+        scores.append(('features', feature_similarity, 0.25))  # 25% weight
+        
+        # Calculate weighted final score
+        final_score = sum(score * weight for _, score, weight in scores)
+        
+        # Debug output (remove in production)
+        print(f"Similarity breakdown: SSIM={ssim_score:.3f}, Hist={hist_corr:.3f}, Hash={hash_similarity:.3f}, Features={feature_similarity:.3f}, Final={final_score:.3f}")
+        
+        return max(0.0, min(1.0, final_score))
+        
+    except Exception as e:
+        print(f"Similarity calculation error: {e}")
+        return 0.0
+
+
+# Set your similarity threshold
+SIMILARITY_THRESHOLD = 0.50  # 50% similarity for auto-approval
 
 def update_submission_status(submission_id, status, notes=''):
     """Update submission row and return its task_id."""
@@ -254,26 +360,42 @@ def submit_task(task_id):
             return redirect(url_for('task_detail', task_id=task_id))
 
     # Save all files if validation passes
-    try:
-        for i, file in enumerate(uploaded_files):
-            filename = secure_filename(
-                f"{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{i+1}_{file.filename}")
-            file.save(os.path.join(UPLOAD_FOLDER_SUBMISSIONS, filename))
-            saved_filenames.append(filename)
-        
-        # Add submission with mobile number and multiple images
-        submission_id = add_submission(task_id, user_name, user_email, mobile_number, saved_filenames)
-        
-        if submission_id:
-            flash(f'Your proof has been submitted successfully with {len(saved_filenames)} images!', 'success')
-        else:
-            flash('Error submitting proof. Please try again.', 'error')
-    except Exception as e:
-        flash('Error uploading files. Please try again.', 'error')
-        print('Upload error:', e)
+        try:
+            for i, file in enumerate(uploaded_files):
+                filename = secure_filename(
+                    f"{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{i+1}_{file.filename}")
+                file.save(os.path.join(UPLOAD_FOLDER_SUBMISSIONS, filename))
+                saved_filenames.append(filename)
+            
+            submission_id = add_submission(task_id, user_name, user_email, mobile_number, saved_filenames)
+            
+            # NEW: Similarity check for auto-approval
+            if submission_id and saved_filenames:
+                task = get_task_by_id(task_id)
+                if task and task['reference_image']:
+                    admin_ref_path = os.path.join(UPLOAD_FOLDER_TASKS, task['reference_image'])
+                    user_image_path = os.path.join(UPLOAD_FOLDER_SUBMISSIONS, saved_filenames[0])
+                    
+                    # Calculate similarity
+                    similarity = calculate_similarity_score(admin_ref_path, user_image_path)
+                    
+                    if similarity >= SIMILARITY_THRESHOLD:
+                        # Auto-approve high similarity submissions
+                        update_submission_status(submission_id, 'approved', 
+                            f'Auto-approved: {similarity:.1%} similarity match')
+                        flash(f'✅ Task auto-approved! Similarity: {similarity:.1%}', 'success')
+                    else:
+                        update_submission_status(submission_id, 'approval pending', 
+                            f'Manual approval: {similarity:.1%} similarity match')
+                        flash(f'📝 Submitted for manual review (Similarity: {similarity:.1%})', 'info')
+                else:
+                    flash(f'Your proof has been submitted successfully with {len(saved_filenames)} images!', 'success')
+            
+        except Exception as e:
+            flash('Error uploading files. Please try again.', 'error')
+            print('Upload error:', e)
 
-    return redirect(url_for('index'))
-
+        return redirect(url_for('index'))
 
 
 # --------------------------- Admin auth -------------------------------
