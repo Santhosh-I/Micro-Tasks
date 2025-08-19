@@ -233,9 +233,8 @@ microtask-website/
 
 **Thresholds**
 
-* > 75% similarity: Auto-approve
-* 50–75%: Manual review
-* <50%: Likely unrelated
+* > 50% similarity: Auto-approve
+* <50%: Manual review
 
 Similarity scores (percentages) are shown for every submission in the admin review page.
 
@@ -278,14 +277,6 @@ SUBMISSIONS_DB_PATH=data/submissions.xlsx
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
----
-
-## 🙏 Acknowledgments
-
-* Flask Community – web framework
-* OpenPyXL – Excel file handling
-* Contributors – thank you for improving this project!
 
 ---
 
