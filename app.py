@@ -385,8 +385,6 @@ def submit_task(task_id):
                             f'Auto-approved: {similarity:.1%} similarity match')
                         flash(f'✅ Task auto-approved! Similarity: {similarity:.1%}', 'success')
                     else:
-                        update_submission_status(submission_id, 'approval pending', 
-                            f'Manual approval: {similarity:.1%} similarity match')
                         flash(f'📝 Submitted for manual review (Similarity: {similarity:.1%})', 'info')
                 else:
                     flash(f'Your proof has been submitted successfully with {len(saved_filenames)} images!', 'success')
