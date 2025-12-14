@@ -22,6 +22,7 @@
                                 <th>User</th>
                                 <th>Email</th>
                                 <th>Mobile</th>
+                                <th>Bank Details</th>
                                 <th>Proof Images</th>
                                 <th>Submitted</th>
                                 <th>Status</th>
@@ -36,6 +37,57 @@
                                     <td>{{ submission.user_name }}</td>
                                     <td>{{ submission.user_email }}</td>
                                     <td>{{ submission.mobile_number if submission.mobile_number else 'Not provided' }}</td>
+                                    <td class="bank-details-cell">
+                                        {% if submission.account_holder_name or submission.bank_account_number %}
+                                            <button type="button" 
+                                                    class="btn btn-xs btn-bank-details"
+                                                    onclick="toggleBankDetails('{{ submission.id }}')">
+                                                🏦 View Bank Info
+                                            </button>
+                                            <div id="bank-details-{{ submission.id }}" class="bank-details-popup" style="display: none;">
+                                                <div class="bank-details-content">
+                                                    <div class="bank-details-header">
+                                                        <h5>💳 Bank Details</h5>
+                                                        <span class="bank-close" onclick="toggleBankDetails('{{ submission.id }}')">&times;</span>
+                                                    </div>
+                                                    <div class="bank-details-body">
+                                                        <div class="bank-info-item">
+                                                            <span class="bank-label">Account Holder</span>
+                                                            <span class="bank-value">{{ submission.account_holder_name or 'N/A' }}</span>
+                                                        </div>
+                                                        <div class="bank-info-item">
+                                                            <span class="bank-label">Account Number</span>
+                                                            <span class="bank-value account-number">{{ submission.bank_account_number or 'N/A' }}</span>
+                                                            {% if submission.bank_account_number %}
+                                                            <button type="button" class="copy-btn" onclick="copyToClipboard('{{ submission.bank_account_number }}')" title="Copy">📋</button>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="bank-info-item">
+                                                            <span class="bank-label">Bank Name</span>
+                                                            <span class="bank-value">{{ submission.bank_name or 'N/A' }}</span>
+                                                        </div>
+                                                        <div class="bank-info-item">
+                                                            <span class="bank-label">IFSC Code</span>
+                                                            <span class="bank-value ifsc-code">{{ submission.ifsc_code or 'N/A' }}</span>
+                                                            {% if submission.ifsc_code %}
+                                                            <button type="button" class="copy-btn" onclick="copyToClipboard('{{ submission.ifsc_code }}')" title="Copy">📋</button>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="bank-info-item">
+                                                            <span class="bank-label">Branch</span>
+                                                            <span class="bank-value">{{ submission.branch_name or 'N/A' }}</span>
+                                                        </div>
+                                                        <div class="bank-info-item">
+                                                            <span class="bank-label">Confirmation Mobile</span>
+                                                            <span class="bank-value">{{ submission.confirmation_mobile or 'N/A' }}</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <span class="no-bank-info">No bank info</span>
+                                        {% endif %}
+                                    </td>
                                     <td class="proof-images-cell">
                                         {% if submission.proof_image %}
                                             {% set image_files = submission.proof_image.split(',') %}
@@ -114,27 +166,35 @@
 
 <!-- Full-Screen Image Modal -->
 <div id="fullscreenModal" class="fullscreen-modal" onclick="closeFullscreenModal()">
-    <div class="fullscreen-content">
-        <div class="fullscreen-header">
-            <h4 id="fullscreenTitle">Image Preview</h4>
-            <div class="fullscreen-controls">
-                <button type="button" class="control-btn" onclick="downloadImage()" title="Download Image">
-                    📥
-                </button>
-                <span class="fullscreen-close" onclick="closeFullscreenModal()" title="Close">&times;</span>
-            </div>
+    <div class="fullscreen-overlay">
+        <!-- Top Right Controls -->
+        <div class="fullscreen-top-controls" onclick="event.stopPropagation()">
+            <button type="button" class="fullscreen-btn download-btn" onclick="downloadImage()" title="Download Image">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>Download</span>
+            </button>
+            <button type="button" class="fullscreen-btn close-btn" onclick="closeFullscreenModal()" title="Close">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                <span>Close</span>
+            </button>
         </div>
-        <div class="fullscreen-body">
-            <img id="fullscreenImage" src="" alt="Full Screen Image" onclick="event.stopPropagation()">
+        
+        <!-- Image Container -->
+        <div class="fullscreen-image-container" onclick="event.stopPropagation()">
+            <img id="fullscreenImage" src="" alt="Full Screen Image">
         </div>
-        <div class="fullscreen-footer">
-            <div class="image-info">
-                <span id="imageInfo">Loading...</span>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeFullscreenModal()">Close</button>
-                <button type="button" class="btn btn-primary" onclick="downloadImage()">Download</button>
-            </div>
+        
+        <!-- Bottom Info Bar -->
+        <div class="fullscreen-info-bar" onclick="event.stopPropagation()">
+            <span id="fullscreenTitle">Image Preview</span>
+            <span id="imageInfo"></span>
         </div>
     </div>
 </div>
@@ -212,6 +272,183 @@
 .proof-images-cell {
     min-width: 150px;
     max-width: 200px;
+}
+
+/* Bank Details Styles */
+.bank-details-cell {
+    position: relative;
+    min-width: 130px;
+}
+
+.btn-bank-details {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+    background: linear-gradient(135deg, #2c5530 0%, #4a7c59 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(44, 85, 48, 0.3);
+}
+
+.btn-bank-details:hover {
+    background: linear-gradient(135deg, #1e3a21 0%, #3d6b4a 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(44, 85, 48, 0.4);
+}
+
+.bank-details-popup {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 320px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    border: 1px solid #e0e0e0;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.bank-details-content {
+    padding: 0;
+}
+
+.bank-details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #2c5530 0%, #4a7c59 100%);
+    border-radius: 12px 12px 0 0;
+    color: white;
+}
+
+.bank-details-header h5 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+.bank-close {
+    font-size: 1.4rem;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+    line-height: 1;
+}
+
+.bank-close:hover {
+    opacity: 1;
+}
+
+.bank-details-body {
+    padding: 16px;
+}
+
+.bank-info-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    gap: 8px;
+}
+
+.bank-info-item:last-child {
+    border-bottom: none;
+}
+
+.bank-label {
+    flex: 0 0 110px;
+    font-size: 0.75rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.bank-value {
+    flex: 1;
+    font-size: 0.875rem;
+    color: #333;
+    font-weight: 500;
+    word-break: break-all;
+}
+
+.bank-value.account-number,
+.bank-value.ifsc-code {
+    font-family: 'Courier New', monospace;
+    background: #f5f7f5;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    color: #2c5530;
+}
+
+.copy-btn {
+    flex: 0 0 auto;
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    background: #e8f5e9;
+    border-color: #4a7c59;
+}
+
+.copy-btn:active {
+    transform: scale(0.95);
+}
+
+.no-bank-info {
+    color: #999;
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+/* Toast notification for copy success */
+.copy-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c5530;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    z-index: 3000;
+    animation: fadeInUp 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 .proof-images-container {
@@ -300,109 +537,123 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: rgba(45, 45, 45, 0.95);
-    backdrop-filter: blur(2px);
+    background-color: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(8px);
 }
 
-.fullscreen-content {
+.fullscreen-overlay {
     position: relative;
     width: 100%;
     height: 100%;
     display: flex;
-    flex-direction: column;
-}
-
-.fullscreen-header {
-    display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 1rem 2rem;
-    background: rgba(45, 45, 45, 0.9);
-    color: white;
-    border-bottom: 1px solid #4A6B4A;
+    justify-content: center;
 }
 
-.fullscreen-header h4 {
-    margin: 0;
-    color: white;
-    font-size: 1.2rem;
+/* Top Right Controls */
+.fullscreen-top-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 12px;
+    z-index: 2001;
 }
 
-.fullscreen-controls {
+.fullscreen-btn {
     display: flex;
     align-items: center;
-    gap: 1rem;
-}
-
-.control-btn {
-    background: none;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    color: white;
-    padding: 0.5rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s ease;
-}
-
-.control-btn:hover {
-    background: #6B8E6B;
-    border-color: #8BA88B;
-}
-
-.fullscreen-close {
-    font-size: 32px;
-    font-weight: bold;
-    color: white;
-    cursor: pointer;
-    transition: color 0.3s ease;
-    background: none;
+    gap: 8px;
+    padding: 10px 16px;
     border: none;
-    padding: 0;
-    line-height: 1;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.fullscreen-close:hover {
-    color: #EF4444;
+.fullscreen-btn svg {
+    flex-shrink: 0;
 }
 
-.fullscreen-body {
-    flex: 1;
+.fullscreen-btn.download-btn {
+    background: linear-gradient(135deg, #2c5530 0%, #4a7c59 100%);
+    color: white;
+}
+
+.fullscreen-btn.download-btn:hover {
+    background: linear-gradient(135deg, #1e3a21 0%, #3d6b4a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(44, 85, 48, 0.4);
+}
+
+.fullscreen-btn.close-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fullscreen-btn.close-btn:hover {
+    background: #dc3545;
+    border-color: #dc3545;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4);
+}
+
+/* Image Container */
+.fullscreen-image-container {
+    max-width: 90%;
+    max-height: 85%;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
-    overflow: hidden;
 }
 
 #fullscreenImage {
     max-width: 100%;
-    max-height: 100%;
+    max-height: 85vh;
     object-fit: contain;
     border-radius: 8px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    animation: imageZoomIn 0.3s ease;
 }
 
-.fullscreen-footer {
+@keyframes imageZoomIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Bottom Info Bar */
+.fullscreen-info-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 2rem;
-    background: rgba(45, 45, 45, 0.9);
-    border-top: 1px solid #4A6B4A;
+    gap: 20px;
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 30px;
     color: white;
+    font-size: 14px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.image-info {
-    font-size: 0.9rem;
-    opacity: 0.8;
-    color: #F5F3F0;
+.fullscreen-info-bar #fullscreenTitle {
+    font-weight: 600;
 }
 
-.modal-actions {
-    display: flex;
-    gap: 0.5rem;
+.fullscreen-info-bar #imageInfo {
+    opacity: 0.7;
 }
 
 /* Regular Modal Styles */
@@ -744,6 +995,67 @@ var currentGalleryImages = [];
 var currentImageIndex = 0;
 var currentImageSrc = '';
 
+// Bank Details Functions
+function toggleBankDetails(submissionId) {
+    var popup = document.getElementById('bank-details-' + submissionId);
+    var isVisible = popup.style.display !== 'none';
+    
+    // Close all other open popups first
+    var allPopups = document.querySelectorAll('.bank-details-popup');
+    allPopups.forEach(function(p) {
+        p.style.display = 'none';
+    });
+    
+    // Toggle the clicked popup
+    if (!isVisible) {
+        popup.style.display = 'block';
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showCopyToast('Copied to clipboard!');
+    }).catch(function(err) {
+        // Fallback for older browsers
+        var textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showCopyToast('Copied to clipboard!');
+    });
+}
+
+function showCopyToast(message) {
+    // Remove existing toast if any
+    var existingToast = document.querySelector('.copy-toast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create and show new toast
+    var toast = document.createElement('div');
+    toast.className = 'copy-toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    // Remove after 2 seconds
+    setTimeout(function() {
+        toast.remove();
+    }, 2000);
+}
+
+// Close bank details popup when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('.bank-details-cell')) {
+        var allPopups = document.querySelectorAll('.bank-details-popup');
+        allPopups.forEach(function(p) {
+            p.style.display = 'none';
+        });
+    }
+});
+
 // Safe modal functions using data attributes
 function openFullscreenModalSafe(element) {
     var imageUrl = element.getAttribute('data-image-url');
@@ -941,28 +1253,6 @@ document.addEventListener('keydown', function(e) {
     if (document.getElementById('rejectModal').style.display === 'block') {
         if (e.key === 'Escape') closeRejectModal();
     }
-});
-
-// Add this to your form submission validation
-document.getElementById('submissionForm').addEventListener('submit', function(e) {
-    var mobileNumber = document.getElementById('mobile_number').value.trim();
-    
-    // Mobile number validation
-    if (mobileNumber.length < 10 || mobileNumber.length > 15 || !/^\d+$/.test(mobileNumber)) {
-        e.preventDefault();
-        alert('Please enter a valid mobile number (10-15 digits only).');
-        return false;
-    }
-    
-    if (selectedFiles.length < 1 || selectedFiles.length > 3) {
-        e.preventDefault();
-        alert('Please select between 1 to 3 images before submitting.');
-        return false;
-    }
-    
-    // Show loading state
-    submitBtn.textContent = 'Uploading...';
-    submitBtn.disabled = true;
 });
 
 </script>

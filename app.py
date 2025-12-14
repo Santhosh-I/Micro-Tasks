@@ -61,9 +61,11 @@ def init_excel_files():
         wb = Workbook()
         ws = wb.active
         ws.title = 'Submissions'
-        # Added mobile_number column
+        # Added mobile_number and bank details columns
         ws.append(['id', 'task_id', 'user_name', 'user_email', 'mobile_number',
-                   'proof_image', 'submitted_at', 'status', 'admin_notes'])
+                   'proof_image', 'submitted_at', 'status', 'admin_notes',
+                   'account_holder_name', 'bank_account_number', 'bank_name',
+                   'ifsc_code', 'branch_name', 'confirmation_mobile'])
         wb.save(SUBMISSIONS_DB_PATH)
 
 
@@ -94,17 +96,29 @@ def add_task(title, description, reference_image):
         print('Error adding task:', e)
         return None
 
-def add_submission(task_id, user_name, user_email, mobile_number, proof_images):
-    """Add submission with mobile number and multiple proof images (1-3 images)"""
+def add_submission(task_id, user_name, user_email, mobile_number, proof_images, bank_details=None):
+    """Add submission with mobile number, multiple proof images (1-3 images), and bank details"""
     try:
         wb = load_workbook(SUBMISSIONS_DB_PATH)
         ws = wb.active
         submission_id = str(uuid.uuid4())[:8]
         images_csv = ','.join(proof_images) if isinstance(proof_images, list) else proof_images
         
+        # Bank details (default to empty strings if not provided)
+        if bank_details is None:
+            bank_details = {}
+        account_holder_name = bank_details.get('account_holder_name', '')
+        bank_account_number = bank_details.get('bank_account_number', '')
+        bank_name = bank_details.get('bank_name', '')
+        ifsc_code = bank_details.get('ifsc_code', '')
+        branch_name = bank_details.get('branch_name', '')
+        confirmation_mobile = bank_details.get('confirmation_mobile', '')
+        
         # Ensure status is always 'pending' (never None)
         ws.append([submission_id, task_id, user_name, user_email, mobile_number, images_csv,
-                  datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'pending', ''])
+                  datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'pending', '',
+                  account_holder_name, bank_account_number, bank_name,
+                  ifsc_code, branch_name, confirmation_mobile])
         wb.save(SUBMISSIONS_DB_PATH)
         return submission_id
     except Exception as e:
@@ -330,6 +344,16 @@ def submit_task(task_id):
     user_email = request.form.get('user_email', '').strip()
     mobile_number = request.form.get('mobile_number', '').strip()  # NEW FIELD
     
+    # Bank details from form
+    bank_details = {
+        'account_holder_name': request.form.get('account_holder_name', '').strip(),
+        'bank_account_number': request.form.get('bank_account_number', '').strip(),
+        'bank_name': request.form.get('bank_name', '').strip(),
+        'ifsc_code': request.form.get('ifsc_code', '').strip().upper(),
+        'branch_name': request.form.get('branch_name', '').strip(),
+        'confirmation_mobile': request.form.get('confirmation_mobile', '').strip()
+    }
+    
     # Get multiple files from form
     uploaded_files = request.files.getlist('proof_image')
 
@@ -360,40 +384,40 @@ def submit_task(task_id):
             return redirect(url_for('task_detail', task_id=task_id))
 
     # Save all files if validation passes
-        try:
-            for i, file in enumerate(uploaded_files):
-                filename = secure_filename(
-                    f"{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{i+1}_{file.filename}")
-                file.save(os.path.join(UPLOAD_FOLDER_SUBMISSIONS, filename))
-                saved_filenames.append(filename)
-            
-            submission_id = add_submission(task_id, user_name, user_email, mobile_number, saved_filenames)
-            
-            # NEW: Similarity check for auto-approval
-            if submission_id and saved_filenames:
-                task = get_task_by_id(task_id)
-                if task and task['reference_image']:
-                    admin_ref_path = os.path.join(UPLOAD_FOLDER_TASKS, task['reference_image'])
-                    user_image_path = os.path.join(UPLOAD_FOLDER_SUBMISSIONS, saved_filenames[0])
-                    
-                    # Calculate similarity
-                    similarity = calculate_similarity_score(admin_ref_path, user_image_path)
-                    
-                    if similarity >= SIMILARITY_THRESHOLD:
-                        # Auto-approve high similarity submissions
-                        update_submission_status(submission_id, 'approved', 
-                            f'Auto-approved: {similarity:.1%} similarity match')
-                        flash(f'✅ Task auto-approved! Similarity: {similarity:.1%}', 'success')
-                    else:
-                        flash(f'📝 Submitted for manual review (Similarity: {similarity:.1%})', 'info')
+    try:
+        for i, file in enumerate(uploaded_files):
+            filename = secure_filename(
+                f"{task_id}_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}_{i+1}_{file.filename}")
+            file.save(os.path.join(UPLOAD_FOLDER_SUBMISSIONS, filename))
+            saved_filenames.append(filename)
+        
+        submission_id = add_submission(task_id, user_name, user_email, mobile_number, saved_filenames, bank_details)
+        
+        # NEW: Similarity check for auto-approval
+        if submission_id and saved_filenames:
+            task = get_task_by_id(task_id)
+            if task and task['reference_image']:
+                admin_ref_path = os.path.join(UPLOAD_FOLDER_TASKS, task['reference_image'])
+                user_image_path = os.path.join(UPLOAD_FOLDER_SUBMISSIONS, saved_filenames[0])
+                
+                # Calculate similarity
+                similarity = calculate_similarity_score(admin_ref_path, user_image_path)
+                
+                if similarity >= SIMILARITY_THRESHOLD:
+                    # Auto-approve high similarity submissions
+                    update_submission_status(submission_id, 'approved', 
+                        f'Auto-approved: {similarity:.1%} similarity match')
+                    flash(f'✅ Task auto-approved! Similarity: {similarity:.1%}', 'success')
                 else:
-                    flash(f'Your proof has been submitted successfully with {len(saved_filenames)} images!', 'success')
-            
-        except Exception as e:
-            flash('Error uploading files. Please try again.', 'error')
-            print('Upload error:', e)
+                    flash(f'📝 Submitted for manual review (Similarity: {similarity:.1%})', 'info')
+            else:
+                flash(f'Your proof has been submitted successfully with {len(saved_filenames)} images!', 'success')
+        
+    except Exception as e:
+        flash('Error uploading files. Please try again.', 'error')
+        print('Upload error:', e)
 
-        return redirect(url_for('index'))
+    return redirect(url_for('index'))
 
 
 # --------------------------- Admin auth -------------------------------
@@ -545,7 +569,7 @@ if __name__ == '__main__':
     host = os.environ.get('HOST', '0.0.0.0')
     port = int(os.environ.get('PORT', 5000))
     
-    print('Starting Microtask Website…')
+    print('Starting Task-Flow Website…')
     print(f'Admin credentials: {ADMIN_USERNAME} / [password from .env file]')
     print(f'Server running on: http://{host}:{port}')
     print(f'Database files: {TASKS_DB_PATH}, {SUBMISSIONS_DB_PATH}')

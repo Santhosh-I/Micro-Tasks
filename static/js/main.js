@@ -208,6 +208,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const fileMessage = document.getElementById('fileMessage');
     const filePreview = document.getElementById('filePreview');
     const submitBtn = document.getElementById('submitBtn');
+    const submissionForm = document.getElementById('submissionForm');
+    
+    // Only run file upload logic if on a page with the submission form
+    if (!fileInput || !fileUploadArea || !submissionForm) {
+        return;
+    }
     
     let selectedFiles = [];
 
@@ -308,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // Form submission validation
-    document.getElementById('submissionForm').addEventListener('submit', function(e) {
+    submissionForm.addEventListener('submit', function(e) {
         if (selectedFiles.length < 1 || selectedFiles.length > 3) {
             e.preventDefault();
             alert('Please select between 1 to 3 images before submitting.');
